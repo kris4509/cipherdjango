@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Delete person{% endblock %}
+
+{% block content %}
+<section class="panel panel-body confirmation">
+    <div class="confirm-icon" aria-hidden="true">!</div>
+    <p class="eyebrow">Please confirm</p>
+    <h1>Delete this person?</h1>
+    <p class="subtitle">
+        {% if user %}This will permanently remove <strong>{{ user.name }}</strong> and their record.{% else %}This record will be permanently removed. This action cannot be undone.{% endif %}
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="button button-danger">Yes, delete person</button>
+            <a href="{% url 'user_list' %}" class="button button-quiet">Keep record</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

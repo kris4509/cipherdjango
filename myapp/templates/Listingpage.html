@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}People{% endblock %}
+
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">People directory</p>
+        <h1>Your people, in one place.</h1>
+        <p class="subtitle">Keep contact details organized and easy to find.</p>
+    </div>
+    <a class="button button-primary" href="{% url 'add_user' %}"><span aria-hidden="true">＋</span> Add a person</a>
+</section>
+
+<section class="panel" aria-label="People directory">
+    {% if records %}
+    <div class="table-tools">
+        <span class="record-count"><strong>{{ records|length }}</strong> {% if records|length == 1 %}person{% else %}people{% endif %} in your directory</span>
+        <div class="filter-controls">
+            <input id="people-search" class="search" type="search" placeholder="Search records…" aria-label="Search records">
+            <select id="search-field" class="filter-select" aria-label="Filter search by">
+                <option value="all">All fields</option>
+                <option value="name">Name</option>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+            </select>
+            <select id="sort-records" class="filter-select" aria-label="Sort records">
+                <option value="original">Default order</option>
+                <option value="name-asc">Name: A to Z</option>
+                <option value="name-desc">Name: Z to A</option>
+                <option value="birth-asc">Birth date: earliest</option>
+                <option value="birth-desc">Birth date: latest</option>
+            </select>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr data-name="{{ rec.name|lower }}" data-email="{{ rec.email|lower }}" data-phone="{{ rec.mobile_number }}" data-birth-date="{{ rec.date_of_birth|date:'Y-m-d' }}">
+                    <th scope="col">Person</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Date of birth</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="people-list">
+                {% for rec in records %}
+                <tr>
+                    <td>
+                        <div class="person">
+                            {% if rec.photo %}
+                            <img class="avatar" src="{{ rec.photo.url }}" alt="{{ rec.name }}'s profile photo">
+                            {% else %}
+                            <span class="avatar avatar-fallback" aria-hidden="true">{{ rec.name|first|upper }}</span>
+                            {% endif %}
+                            <span>{{ rec.name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ rec.email }}</td>
+                    <td>{{ rec.mobile_number }}</td>
+                    <td>{{ rec.date_of_birth|date:"M j, Y" }}</td>
+                    <td>
+                        <div class="actions">
+                            <a class="button button-quiet button-small" href="{% url 'view_user' rec.id %}">View</a>
+                            <a class="button button-quiet button-small" href="{% url 'edit_user' rec.id %}">Edit</a>
+                            <a class="button button-danger button-small" href="{% url 'delete_user' rec.id %}">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="no-search-results" class="empty-state" hidden>
+        <div class="empty-icon" aria-hidden="true">⌕</div>
+        <h2>No matches found</h2>
+        <p>Try a different name, email or phone number.</p>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon" aria-hidden="true">✦</div>
+        <h2>Your directory is ready</h2>
+        <p>Add your first person to get started. Their details will be right here.</p>
+        <a class="button button-primary" href="{% url 'add_user' %}">Add your first person</a>
+    </div>
+    {% endif %}
+</section>
+
+{% if records %}
+<script>
+    const searchInput = document.getElementById("people-search");
+    const peopleRows = [...document.querySelectorAll("#people-list tr")];
+    const noResults = document.getElementById("no-search-results");
+    const searchField = document.getElementById("search-field");
+    const sortRecords = document.getElementById("sort-records");
+
+    peopleRows.forEach((row, index) => {
+        row.dataset.originalOrder = String(index);
+    });
+
+    function updateRecords() {
+        const query = searchInput.value.trim().toLocaleLowerCase();
+        const field = searchField.value;
+        const sort = sortRecords.value;
+        let visibleCount = 0;
+
+        const sortedRows = [...peopleRows].sort((left, right) => {
+            if (sort === "original") {
+                return Number(left.dataset.originalOrder) - Number(right.dataset.originalOrder);
+            }
+            if (sort.startsWith("birth")) {
+                const direction = sort === "birth-asc" ? 1 : -1;
+                return left.dataset.birthDate.localeCompare(right.dataset.birthDate) * direction;
+            }
+            const direction = sort === "name-asc" ? 1 : -1;
+            return left.dataset.name.localeCompare(right.dataset.name) * direction;
+        });
+
+        sortedRows.forEach((row) => {
+            const searchableText = field === "all" ? `${row.dataset.name} ${row.dataset.email} ${row.dataset.phone}` : row.dataset[field];
+            const matches = searchableText.includes(query);
+            row.hidden = !matches;
+            if (matches) visibleCount += 1;
+            document.getElementById("people-list").appendChild(row);
+        });
+
+        noResults.hidden = visibleCount > 0;
+    }
+
+    searchInput.addEventListener("input", updateRecords);
+    searchField.addEventListener("change", updateRecords);
+    sortRecords.addEventListener("change", updateRecords);
+</script>
+{% endif %}
+{% endblock %}
